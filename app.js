@@ -5,15 +5,41 @@ const postModel = require("./models/post");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const post = require("./models/post");
+const crypto = require("crypto");
+const multer = require("multer");
+const path=require("path")
 
 app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/images/uploads");
+  },
+  filename: function (req, file, cb) {
+    crypto.randomBytes(12, function (err, bytes) {
+      const fn=bytes.toString("hex") + path.extname(file.originalname)
+      cb(null, fn);
+    });
+  },
+});
+
+const upload = multer({ storage: storage });
+
 app.get("/", (req, res) => {
   res.render("index.ejs");
+});
+
+app.get("/test", (req, res) => {
+  res.render("test");
+  
+});
+
+app.post("/upload", upload.single("image"),(req, res) => {
+  console.log(req.file)
+  res.send("done")
 });
 
 app.get("/login", (req, res) => {
@@ -49,9 +75,11 @@ app.get("/edit/:id", isLoggedIn, async (req, res) => {
 });
 
 app.post("/update/:id", isLoggedIn, async (req, res) => {
-  let post = await postModel
-    .findOneAndUpdate({ _id: req.params.id }, { content: req.body.content })
-    res.redirect("/profile")
+  let post = await postModel.findOneAndUpdate(
+    { _id: req.params.id },
+    { content: req.body.content }
+  );
+  res.redirect("/profile");
 });
 
 app.post("/post", isLoggedIn, async (req, res) => {
